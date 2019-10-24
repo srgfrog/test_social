@@ -1,0 +1,21 @@
+JSON messages and tasks:
+
+Login
+-> {"login":{"username:"abc","password":"123"}}
+<- {"action":"login", "data":{"result":boolean, "error_message":""}}
+
+Logout
+-> {"logout":[]}
+<- {"action":"logout","data":{"result":boolean}}
+
+List of logged in clients
+
+<- {"action":"list_client","data":["test1","test2",...]}
+
+Send instant message
+-> {"imessage":"Hi there..."}
+<- {"action":"new_im","data":{"sender":"user1","message":"Hello"}}
+
+Signup
+-> {"create_account":{"username:"abc","password":"123"}}
+<- {"action":"create_account", "data":{"result":boolean, "error_message":""}}

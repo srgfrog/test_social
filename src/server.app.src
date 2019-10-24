@@ -1,0 +1,14 @@
+%% Feel free to use, reuse and abuse the code in this file.
+
+{application, server, 
+ [
+  {description, "Cowboy server"},
+  {vsn, "1"},
+  {modules, []},
+  {registered, [server_sup]},
+  {applications, [ kernel, stdlib, cowboy, lager, mnesia]},
+  {mod, {server_app, []}},
+  {env, []}
+ ]
+}.
+

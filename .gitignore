@@ -1,0 +1,9 @@
+_build
+deps
+#*
+rebar.lock
+elm-package.json
+elm-stuff
+erl_crash.dump
+mnesia
+log
