@@ -9243,6 +9243,22 @@ var _user$project$Social$login = F2(
 				err: merr
 			});
 	});
+var _user$project$Social$reset_password = F2(
+	function (model, val) {
+		var login = model.login;
+		var msg = A2(
+			_elm_lang$core$Result$withDefault,
+			'',
+			A2(_elm_lang$core$Json_Decode$decodeValue, _elm_lang$core$Json_Decode$string, val));
+		return _elm_lang$core$Native_Utils.update(
+			model,
+			{
+				login: _elm_lang$core$Native_Utils.update(
+					login,
+					{password: ''}),
+				err: msg
+			});
+	});
 var _user$project$Social$value2str = F2(
 	function (str, val) {
 		return A2(
@@ -9259,6 +9275,10 @@ var _user$project$Social$handle_action = F3(
 		switch (_p1) {
 			case 'login':
 				return A2(_user$project$Social$login, model, val);
+			case 'create_account':
+				return A2(_user$project$Social$login, model, val);
+			case 'reset_password':
+				return A2(_user$project$Social$reset_password, model, val);
 			case 'list_client':
 				return _elm_lang$core$Native_Utils.update(
 					model,
@@ -9385,6 +9405,36 @@ var _user$project$Social$update = F2(
 									_elm_lang$core$Basics_ops['++'],
 									'\",\"password\":\"',
 									A2(_elm_lang$core$Basics_ops['++'], log.password, '\"}}')))))
+				};
+			case 'TryCreateAccount':
+				return {
+					ctor: '_Tuple2',
+					_0: model,
+					_1: A2(
+						_elm_lang$websocket$WebSocket$send,
+						_user$project$Social$echoServer,
+						A2(
+							_elm_lang$core$Basics_ops['++'],
+							'{\"create_account\":{\"username\":\"',
+							A2(
+								_elm_lang$core$Basics_ops['++'],
+								log.username,
+								A2(
+									_elm_lang$core$Basics_ops['++'],
+									'\",\"password\":\"',
+									A2(_elm_lang$core$Basics_ops['++'], log.password, '\"}}')))))
+				};
+			case 'TryResetPassword':
+				return {
+					ctor: '_Tuple2',
+					_0: model,
+					_1: A2(
+						_elm_lang$websocket$WebSocket$send,
+						_user$project$Social$echoServer,
+						A2(
+							_elm_lang$core$Basics_ops['++'],
+							'{\"reset_password\":{\"username\":\"',
+							A2(_elm_lang$core$Basics_ops['++'], log.username, '\"}}')))
 				};
 			case 'TryLogout':
 				return {
@@ -9542,6 +9592,8 @@ var _user$project$Social$main_page = function (model) {
 			_1: {ctor: '[]'}
 		});
 };
+var _user$project$Social$TryResetPassword = {ctor: 'TryResetPassword'};
+var _user$project$Social$TryCreateAccount = {ctor: 'TryCreateAccount'};
 var _user$project$Social$TryLogout = {ctor: 'TryLogout'};
 var _user$project$Social$TryLogin = {ctor: 'TryLogin'};
 var _user$project$Social$MsgPassword = function (a) {
@@ -9623,18 +9675,69 @@ var _user$project$Social$maybe_show_login = function (login) {
 					_1: {
 						ctor: '::',
 						_0: A2(
-							_elm_lang$html$Html$button,
-							{
+							_elm_lang$html$Html$br,
+							{ctor: '[]'},
+							{ctor: '[]'}),
+						_1: {
+							ctor: '::',
+							_0: A2(
+								_elm_lang$html$Html$button,
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html_Events$onClick(_user$project$Social$TryLogin),
+									_1: {ctor: '[]'}
+								},
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html$text('Login'),
+									_1: {ctor: '[]'}
+								}),
+							_1: {
 								ctor: '::',
-								_0: _elm_lang$html$Html_Events$onClick(_user$project$Social$TryLogin),
-								_1: {ctor: '[]'}
-							},
-							{
-								ctor: '::',
-								_0: _elm_lang$html$Html$text('Login'),
-								_1: {ctor: '[]'}
-							}),
-						_1: {ctor: '[]'}
+								_0: A2(
+									_elm_lang$html$Html$br,
+									{ctor: '[]'},
+									{ctor: '[]'}),
+								_1: {
+									ctor: '::',
+									_0: A2(
+										_elm_lang$html$Html$button,
+										{
+											ctor: '::',
+											_0: _elm_lang$html$Html_Events$onClick(_user$project$Social$TryCreateAccount),
+											_1: {ctor: '[]'}
+										},
+										{
+											ctor: '::',
+											_0: _elm_lang$html$Html$text('Create Account'),
+											_1: {ctor: '[]'}
+										}),
+									_1: {
+										ctor: '::',
+										_0: A2(
+											_elm_lang$html$Html$br,
+											{ctor: '[]'},
+											{ctor: '[]'}),
+										_1: {
+											ctor: '::',
+											_0: A2(
+												_elm_lang$html$Html$button,
+												{
+													ctor: '::',
+													_0: _elm_lang$html$Html_Events$onClick(_user$project$Social$TryResetPassword),
+													_1: {ctor: '[]'}
+												},
+												{
+													ctor: '::',
+													_0: _elm_lang$html$Html$text('Reset Password'),
+													_1: {ctor: '[]'}
+												}),
+											_1: {ctor: '[]'}
+										}
+									}
+								}
+							}
+						}
 					}
 				}
 			});
@@ -9660,7 +9763,28 @@ var _user$project$Social$view = function (model) {
 							{ctor: '[]'});
 					}
 				}(),
-				_1: {ctor: '[]'}
+				_1: {
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$div,
+						{ctor: '[]'},
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html$text(model.err),
+							_1: {ctor: '[]'}
+						}),
+					_1: {
+						ctor: '::',
+						_0: A2(
+							_elm_lang$html$Html$div,
+							{ctor: '[]'},
+							A2(
+								_elm_lang$core$List$map,
+								_user$project$Social$viewMessage,
+								_elm_lang$core$List$reverse(model.messages))),
+						_1: {ctor: '[]'}
+					}
+				}
 			}
 		});
 };

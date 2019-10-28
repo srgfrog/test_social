@@ -15,16 +15,19 @@ start() ->
 %    start([],[]).
 
 start(_Type, _Args) ->
-	Dispatch = cowboy_router:compile([
-		{'_', [
-			{"/", cowboy_static, {file, "elm18/index.html"}},
-			{"/websocket", ws_h, []}
-		]}
-	]),
-	{ok, _} = cowboy:start_clear(http, [{port, 8080}], #{
-		env => #{dispatch => Dispatch}
-	}),
-	websocket_sup:start_link().
+    Dispatch = cowboy_router:compile([
+				      {'_', [
+					     {"/", cowboy_static, {file, "elm18/index.html"}},
+					     {"/websocket", ws_h, []}
+					    ]}
+				     ]),
+    
+    {ok, _} = cowboy:start_clear(http, [{port, 8080}], #{
+							 env => #{dispatch => Dispatch}
+							}),
+    spawn(fun() -> ws_h:maybe_create_tables(mnesia:system_info(tables)) end),
+    websocket_sup:start_link().
 
 stop(_State) ->
-	ok = cowboy:stop_listener(http).
+    ok = cowboy:stop_listener(http).
+

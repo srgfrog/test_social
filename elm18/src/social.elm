@@ -51,6 +51,8 @@ type Msg
   | MsgPassword String
   | TryLogin
   | TryLogout
+  | TryCreateAccount
+  | TryResetPassword
   | MsgNewIM String
   | TrySendIM
 
@@ -68,6 +70,10 @@ update msg model =
                 ({model | login= {log | username=str}}, Cmd.none)
             TryLogin ->
                 (model, WebSocket.send echoServer ("{\"login\":{\"username\":\"" ++ log.username ++ "\",\"password\":\"" ++ log.password ++ "\"}}"))
+            TryCreateAccount ->
+                (model, WebSocket.send echoServer ("{\"create_account\":{\"username\":\"" ++ log.username ++ "\",\"password\":\"" ++ log.password ++ "\"}}"))
+            TryResetPassword ->
+                (model, WebSocket.send echoServer ("{\"reset_password\":{\"username\":\"" ++ log.username ++ "\"}}"))
             TryLogout ->
                 (default_model, WebSocket.send echoServer "{\"logout\":[]}")
             MsgNewIM str ->
@@ -101,6 +107,10 @@ handle_action model str val =
     case str of
         "login" ->
             (login model val)
+        "create_account" ->
+            (login model val)
+        "reset_password" ->
+            (reset_password model val)        
         "list_client" ->
             {model | list_client =(Result.withDefault [] (D.decodeValue( D.list D.string) val)) }
         "new_im" ->
@@ -114,6 +124,15 @@ handle_action model str val =
 value2str : String -> D.Value -> String
 value2str str val =
     Result.withDefault "" (D.decodeValue (D.field str D.string) val)
+
+reset_password : Model -> D.Value -> Model
+reset_password model val =
+    let
+        msg = Result.withDefault "" (D.decodeValue D.string val)
+        login = model.login
+    in
+        {model | login={login | password = ""},err = msg}
+        
         
 login : Model -> D.Value -> Model
 login model val =
@@ -141,7 +160,8 @@ view model =
                     main_page model
                 False ->
                     div [] []
---           ,div [] (List.map viewMessage (List.reverse model.messages))
+           ,div [] [text model.err]
+           ,div [] (List.map viewMessage (List.reverse model.messages))
            ]
 main_page : Model -> Html Msg
 main_page model =
@@ -184,7 +204,12 @@ maybe_show_login login =
             div []
                 [ input [ type_ "text", placeholder "Username", onInput MsgUsername ] []
                 , input [ type_ "password", placeholder "Password", onInput MsgPassword ] []
+                ,br [] []
                 , button [ onClick TryLogin ] [ text "Login" ]
+                ,br [] []
+                , button [ onClick TryCreateAccount ] [ text "Create Account" ]
+                ,br [] []
+                , button [ onClick TryResetPassword ] [ text "Reset Password" ]
                 ]
             
 viewMessage : String -> Html msg

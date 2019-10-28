@@ -1,5 +1,9 @@
 JSON messages and tasks:
 
+Create account
+-> {"create_account":{"username:"abc","password":"123"}}
+<- {"action":"create_account", "data":{"result":boolean, "error_message":""}}
+
 Login
 -> {"login":{"username:"abc","password":"123"}}
 <- {"action":"login", "data":{"result":boolean, "error_message":""}}
@@ -7,6 +11,10 @@ Login
 Logout
 -> {"logout":[]}
 <- {"action":"logout","data":{"result":boolean}}
+
+Reset Password
+-> {"reset_password":{"username:"abc","password":"123"}}
+<- {"action":"reset_password", "data":""}
 
 List of logged in clients
 

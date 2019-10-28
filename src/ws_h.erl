@@ -1,6 +1,6 @@
 -module(ws_h).
 
--export([init/2]).
+-export([init/2,maybe_create_tables/1]).
 -export([websocket_init/1]).
 -export([websocket_handle/2]).
 -export([websocket_info/2,terminate/3]).
@@ -11,9 +11,15 @@
 -define(ONLYIF(COND,STATE), case (COND) of true -> STATE; false -> nothing end).
 -define(ONLYIF(COND,STATE,STATE2), case (COND) of true -> STATE; false -> STATE2 end).
 -record(state, {
-		username=undefined :: undefined | binary() %% Username of client
+		username=undefined :: undefined | binary() %% Username of logged in client
 	       }).
-	        
+
+%% Record for table storing username account
+-record(useraccount, {
+		      username :: binary(),
+		      password :: binary()
+		     }).
+
 init(Req, Opts) ->
 	{cowboy_websocket, Req, Opts}.
 
@@ -44,19 +50,55 @@ websocket_handle(_Data, State) ->
     {[], State}.
 
 -spec process_json([tuple()],#state{}) -> {binary() | list(), #state{}}.
+process_json([{<<"reset_password">>,Data}],State) ->
+    Msg = case get_username_password(Data) of
+	      {Username,_,AccPass} when is_binary(Username) andalso is_binary(AccPass) ->
+		  NewPassword = list_to_binary([$a  + trunc(rand:uniform() * 26) || _ <- [1,2,3,4]]),
+		  mnesia:dirty_write(#useraccount{username=Username,password=NewPassword}),
+		  <<"Your new password is '",NewPassword/binary,"'">>;
+	      {undefined,_,_} ->
+		  <<"invalid username">>;
+	      {_,_,undefined} ->
+		  <<"account does not exist">>
+	  end,
+    {[{<<"action">>,<<"reset_password">>},
+      {<<"data">>,Msg}],State};
+process_json([{<<"create_account">>,Data}],State) ->
+    
+    {Msg,Uname} = case get_username_password(Data) of
+		      {Username,Password,undefined} when is_binary(Username) andalso is_binary(Password) ->
+			  mnesia:dirty_write(#useraccount{username=Username,password=Password}),
+			  add_group(Username),
+			  {<<"Account successfully created">>,Username};
+		      {undefined,_,_} ->
+			  {<<"invalid username">>,undefined};
+		      {_,undefined,_} ->
+			  {<<"invalid password">>,undefined};
+		      _ ->
+			  {<<"account already exists">>,undefined}
+		  end,
+    {[{<<"action">>,<<"create_account">>},
+      {<<"data">>,[{<<"result">>,is_binary(Uname)},
+		   {<<"error">>,Msg}]}],
+     State#state{username=Uname}};
 process_json([{<<"login">>,Data}],State) ->
-    ?INFO("data ~p",[Data]),
-    case proplists:get_value(<<"username">>,Data) of
-	Username when is_binary(Username) andalso byte_size(Username) > 2 ->
-	    add_group(Username),
-	    {[{<<"action">>,<<"login">>},{<<"data">>,[{<<"result">>,true}]}],
-	     State#state{username=Username}};
-	_ ->
-	    {[{<<"action">>,<<"login">>},
-	      {<<"data">>,[{<<"result">>,false},
-			   {<<"error">>,<<"invalid username">>}]}],
-	     State#state{username=undefined}}
-    end;
+    {Msg,Uname} = case get_username_password(Data) of
+		      {Username,Password,Password} when is_binary(Username) andalso is_binary(Password) ->
+			  add_group(Username),
+			  {<<"">>,Username};
+		      {undefined,_,_} ->
+			  {<<"invalid username">>,undefined};
+		      {_,undefined,_} ->
+			  {<<"invalid password">>,undefined};
+		      {_,_,undefined} ->
+			  {<<"account does not exist">>,undefined};
+		      _ ->
+			  {<<"password not correct">>,undefined}
+		  end,
+    {[{<<"action">>,<<"login">>},
+      {<<"data">>,[{<<"result">>,is_binary(Uname)},
+		   {<<"error">>,Msg}]}],
+     State#state{username=Uname}};
 process_json([{<<"logout">>,_}],State=#state{username=Username}) ->
     logout(Username),
     {[{<<"action">>,<<"logout">>},{<<"data">>,[{<<"result">>,true}]}],
@@ -71,6 +113,30 @@ process_json([{<<"imessage">>,Msg}],State = #state{username=Username}) when is_b
 process_json(JObj,State) ->
     ?INFO("Unknown command ~p",[JObj]),
     {[],State}.
+
+-spec get_username_password([tuple()]) -> {binary() | undefined,binary() | undefined,binary() | undefined}.
+get_username_password(Data) ->
+    ?INFO("data ~p",[Data]),
+    F = fun(Key) ->
+		case proplists:get_value(Key,Data) of
+		    X when is_binary(X) andalso byte_size(X) > 2 ->
+			X;
+		    _ ->
+			undefined
+		end
+	end,
+    Password = F(<<"password">>),
+    case F(<<"username">>) of
+	undefined ->
+	    {undefined,Password,undefined};
+	Username ->
+	    case mnesia:dirty_read(useraccount,Username) of
+		[#useraccount{password = AccPass}] ->
+		    {Username,Password,AccPass};
+		_ ->
+		    {Username,Password,undefined}
+	    end
+    end.
 
 -spec add_group(binary()) -> ok.
 add_group(Username) ->
@@ -117,5 +183,12 @@ terminate(_,_,#state{username=Username}) ->
     ok;
 terminate(_,_,_) ->
     ok.
+
+maybe_create_tables([schema]) ->
+    mnesia:change_table_copy_type(schema,node(),disc_copies),
+    mnesia:create_table(useraccount,[{attributes,record_info(fields,useraccount)},{disc_copies,[node()]}]);
+maybe_create_tables(_) ->
+    ok.
+    
 
     
