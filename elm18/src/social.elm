@@ -161,7 +161,7 @@ view model =
                 False ->
                     div [] []
            ,div [] [text model.err]
-           ,div [] (List.map viewMessage (List.reverse model.messages))
+--           ,div [] (List.map viewMessage (List.reverse model.messages))
            ]
 main_page : Model -> Html Msg
 main_page model =
